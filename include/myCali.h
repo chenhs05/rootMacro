@@ -1,5 +1,13 @@
+#include "TH1D.h"
+#include "TH2D.h"
+#include "TProfile.h"
+#include "TPostScript.h"
+#include "TFrame.h"
+#include "TF1.h"
+#include "TROOT.h"
+#include "TStyle.h"
 
-void DoCorrection(float *ttm,float *tot,int nCount,int nCharge,int nCor,Char_t *psName,float tLimit,int tBins,float *totMin,float *totMax,int totBins,float *fitMin,float *fitMax,TF1 *fitf,float Nsigma,int nTotMax,int IsSplit=0,float totSplit=0,int IdxRpcCharge=4)
+void DoCorrection(double *ttm,double *tot,int nCount,int nCharge,int nCor,Char_t *psName,double tLimit,int tBins,double *totMin,double *totMax,int totBins,double *fitMin,double *fitMax,TF1 *fitf,double Nsigma,int nTotMax,int IsSplit=0,double totSplit=0,int IdxRpcCharge=4)
 {
 	cout<<"######## "<<psName<<" Calibration ########"<<endl;
 	cout<<"Good events:    "<<nCount<<endl;
@@ -13,21 +21,22 @@ void DoCorrection(float *ttm,float *tot,int nCount,int nCharge,int nCor,Char_t *
   Char_t buf[1024];
   
 	TF1 *f1 = new TF1("f1","gaus");
-	TF1 *ftemp = new TF1("ftemp","[0]*exp(-0.5*((x-[1])/[2])**2)",-tLimit[0],tLimit[0]);
+	TF1 *ftemp = new TF1("ftemp","[0]*exp(-0.5*((x-[1])/[2])**2)",-tLimit,tLimit);
 	f1->SetLineColor(2);
 	ftemp->SetLineWidth(3);
-	ftemp->SetLineStyle(2);
+	//ftemp->SetLineStyle(2);
 	ftemp->SetLineColor(2);
 	
-	sprintf(buf,"%s%s_%s_Cali.ps",directory,fileName,psName);
+	cout<<psName<<endl;
+	sprintf(buf,"%s_Cali.ps",psName);
 	TPostScript *ps = new TPostScript(buf,112);
-  ps->Range(24,16);
+	  ps->Range(24,16);
   
-  TCanvas *c1 = new TCanvas("c1","c1",0,0,1000,800);
+	TCanvas *c1 = new TCanvas("c1","c1",0,0,1000,800);
 	c1->SetFillColor(kWhite);
-  c1->GetFrame()->SetFillColor(21);
- 	c1->GetFrame()->SetBorderSize(6);
-  c1->GetFrame()->SetBorderMode(-1);
+	c1->GetFrame()->SetFillColor(21);
+	c1->GetFrame()->SetBorderSize(6);
+	c1->GetFrame()->SetBorderMode(-1);
   
 	gStyle->SetOptFit(110);
 	gStyle->SetOptStat(110);
@@ -38,9 +47,9 @@ void DoCorrection(float *ttm,float *tot,int nCount,int nCharge,int nCor,Char_t *
 	FILE* outResult;
 	double minCtr=1e9;
 	double minCtrErr;
-	sprintf(buf,"%scaliResult.txt",directory);
+	sprintf(buf,"caliResult.txt");
 	outResult = fopen(buf,"a");
-	fprintf(outResult,"%s",fileName);
+	fprintf(outResult,"%s",psName);
 //  /////////////////////////
   
   for(int i=0;i<nCor;i++)
@@ -53,12 +62,12 @@ void DoCorrection(float *ttm,float *tot,int nCount,int nCharge,int nCor,Char_t *
   	//c1->cd(1)->SetLogy();
   	
   	//sprintf(buf,"%s_%d",psName,i);
-  	sprintf(buf,"%s",psName,i);
+  	sprintf(buf,"%s_%d",psName,i);
 //		sprintf(buf," ");
   	T= new TH1D(buf,buf,tBins,-tLimit,tLimit); 
 	  T->SetLineWidth(2);
-	  
-  	for(int m=0;m<nCount;m++)
+	int m;  
+  	for(m=0;m<nCount;m++)
   	{
   		T->Fill(ttm[m]);
   	}
@@ -79,7 +88,6 @@ void DoCorrection(float *ttm,float *tot,int nCount,int nCharge,int nCor,Char_t *
 	  ftemp->SetParameters(para[0],para[1],para[2]);
 	  ftemp->Draw("same");
 	  
-//	  T->GetXaxis()->SetTitle("((PMT1+PMT2)-(PMT3+PMT4))/4 [¡Á35ps]");
 		T->GetXaxis()->SetTitle("t [ns]");
 		T->GetXaxis()->CenterTitle();
 		T->GetYaxis()->SetTitle("Counts");
@@ -87,9 +95,9 @@ void DoCorrection(float *ttm,float *tot,int nCount,int nCharge,int nCor,Char_t *
 
 //		/////////////////////
 	double ctrRes,ctrErr;
-	ctrRes=sqrt(para[2]*para[2]-resTDC*resTDC)*2.35*1000.0;
-	ctrErr=err*2.35*1000.0;
-	fprintf(outResult,"	%f	%f",ctrRes,ctrErr);
+	ctrRes=para[2]*2.35*50.2;
+	ctrErr=err*2.35*50.2;
+	//fprintf(outResult,"	%f	%f\n",ctrRes,ctrErr);
 	if(ctrRes<minCtr) {
 		minCtr=ctrRes;
 		minCtrErr=ctrErr;
@@ -121,21 +129,21 @@ void DoCorrection(float *ttm,float *tot,int nCount,int nCharge,int nCor,Char_t *
   		c1->cd(nPad);
   		Corr->Draw("colz");
   			
-  		Corr->GetXaxis()->SetTitle("TOT [ns]");
-			Corr->GetXaxis()->CenterTitle();
-			Corr->GetYaxis()->SetTitle("t [ns]");
-			Corr->GetYaxis()->CenterTitle();
-			c1->cd(nPad)->Update();
-  		
-  		Corr->ProfileX();
-			sprintf(buf,"%s_Correction(%d)_%d_pfx",psName,i,j);
-			htemp=(TProfile *)gDirectory->Get(buf);
-			c1->cd(nPad)->Update();
-			htemp->Draw("QRsame");
-			htemp->SetLineColor(kBlack);
-			htemp->SetMarkerColor(kBlack);
-			htemp->SetMarkerStyle(21);
-			htemp->SetMarkerSize(0.6);
+		Corr->GetXaxis()->SetTitle("TOT [ns]");
+		Corr->GetXaxis()->CenterTitle();
+		Corr->GetYaxis()->SetTitle("t [ns]");
+		Corr->GetYaxis()->CenterTitle();
+		c1->cd(nPad)->Update();
+	
+		Corr->ProfileX();
+		sprintf(buf,"%s_Correction(%d)_%d_pfx",psName,i,j);
+		htemp=(TProfile *)gDirectory->Get(buf);
+		c1->cd(nPad)->Update();
+		htemp->Draw("QRsame");
+		htemp->SetLineColor(kBlack);
+		htemp->SetMarkerColor(kBlack);
+		htemp->SetMarkerStyle(21);
+		htemp->SetMarkerSize(0.6);
   		c1->cd(nPad)->Update();
   		
   		if(IsSplit==1&&j==IdxRpcCharge)
