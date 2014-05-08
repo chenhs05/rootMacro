@@ -1,4 +1,7 @@
-gROOT->Reset();
+//root macro for sptr analysis with HPTDC
+//create by H.Chen
+//#include <TROOT.h>
+//gROOT->Reset();
 #include <stdlib.h>
 #include <fstream>
 #include <iostream>
@@ -14,50 +17,55 @@ gROOT->Reset();
 #include "tdc_ch_values.cpp"
 #include "include/myCali.h"
 
-char *directory = "/home/huangshan/Documents/measurement/SiPM_Measurements/20121203TDC_Scope/";
-char *fileName = "20121203";
+#include "TTree.h"
+#include "TGraph.h"
+#include "TFile.h"
+#include "TLine.h"
+
+char *directory = "/home/huangshan/Documents/measurement/SiPM_Measurements/201401_sptr/goodEvent/";
+char *fileName = "sptr_17_2_1";
 
 const int chLaser = 1;
 const int chStic = 4;
 const int edgeLaser[2] = {0,1};
 const int edgeStic[2] = {1,0};
 
-const float binTDC = 24.414; //ps
-const int totHyst = 409; //10ns
-const float maxDelay = 2048;	//50ns
+const float binTDC = 25.0; ///24.414; //ps
+const int totHyst = 409; //
+const float maxDelay = 4096;	//*25ps
 
 const int nMax = 1e7; 
 float t[nMax],tot[nMax],totLaser[nMax];
 int nEvents;
 
-const float minT = 23.50;
-const float maxT = 29.50;
+const float minT = 35;
+const float maxT = 45;
 const float binningAllT = 0.05;
 int nBinsAllT = int((maxT-minT)/binningAllT);
-const float minTot = 20;
-const float maxTot = 250;
-const float binningAllTot =0.65;
+const float minTot = 0;
+const float maxTot = 200;
+const float binningAllTot = 0.5;
 int nBinsAllTot = int((maxTot-minTot)/binningAllTot);
 
-const float shift_t = -27;
+const float shift_t = 40;
 const int nCor = 5;
 const float nSigma = 1.5; 
-const float halfPeakWidth = 1.500;
+const float halfPeakWidth = 10;
 
-const float binningPeakT = 0.025;
+float binningPeakT = 0.05;
 int nBinsPeakT = int(2*halfPeakWidth/binningPeakT);
-const float minPeakTot[2] = {52,0};
-const float maxPeakTot[2] = {65,0};
-const float binningPeakTot = 0.65;
+double minPeakTot[2] = {56,0};
+double maxPeakTot[2] = {64,0};
+float binningPeakTot = 0.5;
 int nBinsPeakTot = int((maxPeakTot[0]-minPeakTot[0])/binningPeakTot);
 //const int nBinsPeakTot = 20;
-const float fitMinTot[2] = {minPeakTot[0],0};
-const float fitMaxTot[2] = {maxPeakTot[0],0};
+double fitMinTot[2] = {minPeakTot[0]+1,0};
+double fitMaxTot[2] = {maxPeakTot[0]-1,0};
 
 int nCharge = 1;
 
 int nSelect = 13000;
-bool modeSelect = 1;
+bool modeSelect = 0;
 
 bool NLCorr = 0;
 /************  Read .dat file and convert to .root file, without NL correction *************
@@ -177,15 +185,15 @@ void CreatTdcCorrection(char *file,tdc_ch_values *chan,int channel,int edge)
 *********************************************************************************************/
 void ReadFile()
 {
-	int chIn,tsIn,edgeIn,dt;
-	float tsBuf,tsLaserBuf,totLaserBuf,tsSticBuf,tSticBuf,tsSticBuf2,totSticBuf;
+	long int chIn,tsIn,edgeIn,dt;
+	long int tsBuf,tsLaserBuf,totLaserBuf,tsSticBuf,tSticBuf,tsSticBuf2,totSticBuf,tsLaserBuf2;
 	char buf1[1024];
 	char file1[1024];
 	float tStic,totStic,totTrigger;
 	sprintf(file1,"%s%s.dat",directory,fileName);
 
+	tdc_ch_values *chanLaser, *chanStic;	
 	if(NLCorr == 1)	{
-		tdc_ch_values *chanLaser, *chanStic;	
 		printf("\n####	Start to read file with TDC NL correction!	####\n");
 		chanLaser = new tdc_ch_values(1,1024);
 		chanStic = new tdc_ch_values(1,1024);
@@ -206,6 +214,7 @@ void ReadFile()
 
 	tsBuf=0;
 	tsLaserBuf = 0;
+	tsLaserBuf2 = 0;
 	tsSticBuf  = 0;
 	tSticBuf   = 0;
 	tsSticBuf2 = 0;
@@ -216,6 +225,7 @@ void ReadFile()
 		is>>chIn>>tsIn>>edgeIn;
 		if(tsIn<tsBuf-1e5)	{
 			tsLaserBuf = 0;
+			tsLaserBuf2 = 0;
 			tsSticBuf  = 0;
 			tSticBuf   = 0;
 			tsSticBuf2 = 0;
@@ -229,29 +239,52 @@ void ReadFile()
 				if(edgeIn == edgeLaser[0]){
 					if(NLCorr == 1) tsLaserBuf = chanLaser->get_dith_value(tsIn);
 					else tsLaserBuf = tsIn;
+				//	tsSticBuf  = 0;
+				//	tsSticBuf2 = 0;
+				//	tSticBuf = 0;
+				//	totSticBuf = 0;
+
 				}
 				break;
 			}
 			case chStic:		{
 				if(edgeIn == edgeStic[0])	{
 					if(totSticBuf == 0)	{
+					if(tsLaserBuf != tsLaserBuf2)	{
 						if(NLCorr == 1) tsSticBuf = chanStic->get_dith_value(tsIn);
 						else tsSticBuf = tsIn;
-						tSticBuf = tsSticBuf - tsLaserBuf;
+						if(tsSticBuf > tsLaserBuf )	{
+							tSticBuf = tsSticBuf - tsLaserBuf;
+							tsLaserBuf2 = tsLaserBuf;
+						}
+						else tsSticBuf = 0;
+					}
 					}
 					else	{	
 						if(NLCorr ==1 ) dt = chanStic->get_dith_value(tsIn)-tsSticBuf2;
 						else dt = tsIn-tsSticBuf2;
 						if(dt>totHyst)	{
 							if(tSticBuf<maxDelay)	{
-								tot[nEvents] = totSticBuf*binTDC/1000.0;	//ns
-								t[nEvents] = tSticBuf*binTDC/1000.0;	//ns
+								tot[nEvents] = totSticBuf*binTDC*0.001;	//ns
+								t[nEvents] = tSticBuf*binTDC*0.001;	//ns
+
+					//			if(t[nEvents]< 30)	printf("%f %f %d %d %d\n",t[nEvents],tot[nEvents],tsSticBuf,tsLaserBuf2,tsLaserBuf);
+
 								nEvents++;
 							}
 							totSticBuf = 0;
-							if(NLCorr == 1) tsSticBuf = chanStic->get_dith_value(tsIn);
-							else tsSticBuf = tsIn;
-							tSticBuf = tsSticBuf - tsLaserBuf;
+							tsSticBuf = 0;
+							if(tsLaserBuf != tsLaserBuf2)	
+							{
+								if(NLCorr == 1) tsSticBuf = chanStic->get_dith_value(tsIn);
+								else tsSticBuf = tsIn;
+								if(tsSticBuf > tsLaserBuf )	{
+									tSticBuf = tsSticBuf - tsLaserBuf;
+									tsLaserBuf2 = tsLaserBuf;
+								}
+								else tsSticBuf = 0;
+
+							}
 						}
 					}
 				}
@@ -302,7 +335,7 @@ void ReadFile()
 void ReadRootFile(TFile *rootFile,char *treeName)
 {
 	float tBuf,totBuf;
- 	TTree *h1 = rootFile->Get(treeName);
+ 	TTree *h1 = (TTree*)rootFile->Get(treeName);
 	h1->Print();
    	h1->SetBranchAddress("t",&tBuf);
    	h1->SetBranchAddress("tot",&totBuf);
@@ -314,6 +347,7 @@ void ReadRootFile(TFile *rootFile,char *treeName)
 		t[i]	= tBuf;
 		tot[i]	= totBuf;
 	}
+	rootFile->Close();
 }
 
 /************ Plot the status of the data!  ************************************************** 
@@ -323,15 +357,15 @@ void PlotStatus()
 	cout<<"\n"<<"####	Plot the spectrums	####"<<"\n";
 	int i,j,k;
 	char buf2[1024];
-	TObjArray histlist(0);
+//	TObjArray histlist(0);
 	TH1D *histT = new TH1D("t","t",nBinsAllT,minT,maxT);
 	TH1D *histTOT = new TH1D("TOT","TOT",nBinsAllTot,minTot,maxTot);
-	TH2D *tVsTot = new TH2D("tVsTot","t vs. TOT",nBinsPeakTot,minPeakTot[0],maxPeakTot[0],nBinsPeakT,-shift_t-halfPeakWidth,-shift_t+halfPeakWidth);
+	TH2D *tVsTot = new TH2D("tVsTot","t vs. TOT",nBinsPeakTot,minPeakTot[0],maxPeakTot[0],nBinsPeakT,shift_t-halfPeakWidth,shift_t+halfPeakWidth);
 	TGraph *sigmaSlice; 
-	histlist.Add(histT);
-	histlist.Add(histTOT);
-	histlist.Add(sigmaSlice);
-	histlist.Add(tVsTot);
+//	histlist.Add(histT);
+//	histlist.Add(histTOT);
+//	histlist.Add(sigmaSlice);
+//	histlist.Add(tVsTot);
 	
 //	cout<<"\n"<<"nEvents = "<<nEvents<<"\n"<<"\n";
 	for(i=0;i<nEvents;i++)
@@ -372,59 +406,59 @@ void PlotStatus()
 	cStatus2->Update();
 	
 
-	TF1 *f1 = new TF1("f1","gaus");
-	const int maxNSlice = 1024;
-	TH1D *histSlice[maxNSlice];
-	double para[16],mean,sigma,err;
-	double binSliceLow[maxNSlice],binSliceUp[maxNSlice],meanBinSlice[maxNSlice],meanT[maxNSlice],sigmaT[maxNSlice],sigmaSigmaT[maxNSlice],nEventsSlice[maxNSlice];
-	for(i=0;i<nBinsPeakTot;i++)	{
-		sprintf(buf2,"tSlice_%d",i);
-		histSlice[i] = new TH1D(buf2,buf2,int((maxT-minT)/binningPeakT),minT,maxT);
-		binSliceLow[i]=minPeakTot[0]+i*binningPeakTot;
-		binSliceUp[i]=minPeakTot[0]+(i+1)*binningPeakTot;
-		meanT[i]=0;
-		sigmaT[i]=0;
-		sigmaSigmaT[i]=0;
-		nEventsSlice[i]=0;
-	}
-	for(i=0;i<nEvents;i++)	{
-//		if(i%100000==0)	cout<<"!!!!!!!!!!!!!	"<<i<<"	!!!!!!!!!!!!!!!!!!!"<<"\n";
-		for(int j=0;j<nBinsPeakTot;j++)	{
-			if(tot[i]>=binSliceLow[j] && tot[i]<binSliceUp[j])	{
-				histSlice[j]->Fill(t[i]);
-				nEventsSlice[j]++;
-			}
-		}
-	}
-	ofstream outProfile;
-	sprintf(buf2,"%s%s_SliceProfile.txt",directory,fileName);
-	outProfile.open(buf2,ios::trunc);
-	outProfile<<"Slice#	TOTLow	TOTUP	nEvents	meanT	sigmaT	sigmaSigmaT"<<"\n";
-	for(i=0;i<nBinsPeakTot;i++)	{
-		mean=histSlice[i]->GetMean();
-		sigma=histSlice[i]->GetRMS();
-		f1->SetRange(mean-nSigma*sigma, mean+nSigma*sigma);
-		histSlice[i]->Fit("f1","NQR");
-		f1->GetParameters(&para[0]);
-		f1->SetRange(para[1]-nSigma*para[2], para[1]+nSigma*para[2]);
-		histSlice[i]->Fit("f1","NQR");
-		f1->GetParameters(&para[0]);
-		f1->SetRange(para[1]-nSigma*para[2], para[1]+nSigma*para[2]);
-		histSlice[i]->Fit("f1","NQR");
-		f1->GetParameters(&para[0]);
-		err=f1->GetParError(2);
-		meanT[i]=para[1];
-		sigmaT[i]=para[2]*1000.0;
-		sigmaSigmaT[i]=err*1000.0;
-		meanBinSlice[i]=0.5*(binSliceLow[i]+binSliceUp[i]);
-		outProfile<<i<<"	"<<binSliceLow[i]<<"	"<<binSliceUp[i]<<"	"<<nEventsSlice[i]<<"	"<<para[1]<<"	"<<para[2]*1000.0<<"	"<<err*1000.0<<"\n";
-	}
-	outProfile.close();
-	TCanvas *cStatus3 = new TCanvas("status3","status3",10,10,800,600);
-	sigmaSlice = new TGraph(nBinsPeakTot,meanBinSlice,sigmaT);
-	sigmaSlice->SetTitle("sigmaT vs tot");
-	sigmaSlice->Draw("A*");
-	cStatus3->Update();
+//	TF1 *f1 = new TF1("f1","gaus");
+//	const int maxNSlice = 1024;
+//	TH1D *histSlice[maxNSlice];
+//	double para[16],mean,sigma,err;
+//	double binSliceLow[maxNSlice],binSliceUp[maxNSlice],meanBinSlice[maxNSlice],meanT[maxNSlice],sigmaT[maxNSlice],sigmaSigmaT[maxNSlice],nEventsSlice[maxNSlice];
+//	for(i=0;i<nBinsPeakTot;i++)	{
+//		sprintf(buf2,"tSlice_%d",i);
+//		histSlice[i] = new TH1D(buf2,buf2,int((maxT-minT)/binningPeakT),minT,maxT);
+//		binSliceLow[i]=minPeakTot[0]+i*binningPeakTot;
+//		binSliceUp[i]=minPeakTot[0]+(i+1)*binningPeakTot;
+//		meanT[i]=0;
+//		sigmaT[i]=0;
+//		sigmaSigmaT[i]=0;
+//		nEventsSlice[i]=0;
+//	}
+//	for(i=0;i<nEvents;i++)	{
+////		if(i%100000==0)	cout<<"!!!!!!!!!!!!!	"<<i<<"	!!!!!!!!!!!!!!!!!!!"<<"\n";
+//		for(int j=0;j<nBinsPeakTot;j++)	{
+//			if(tot[i]>=binSliceLow[j] && tot[i]<binSliceUp[j])	{
+//				histSlice[j]->Fill(t[i]);
+//				nEventsSlice[j]++;
+//			}
+//		}
+//	}
+//	ofstream outProfile;
+//	sprintf(buf2,"%s%s_SliceProfile.txt",directory,fileName);
+//	outProfile.open(buf2,ios::trunc);
+//	outProfile<<"Slice#	TOTLow	TOTUP	nEvents	meanT	sigmaT	sigmaSigmaT"<<"\n";
+//	for(i=0;i<nBinsPeakTot;i++)	{
+//		mean=histSlice[i]->GetMean();
+//		sigma=histSlice[i]->GetRMS();
+//		f1->SetRange(mean-nSigma*sigma, mean+nSigma*sigma);
+//		histSlice[i]->Fit("f1","NQR");
+//		f1->GetParameters(&para[0]);
+//		f1->SetRange(para[1]-nSigma*para[2], para[1]+nSigma*para[2]);
+//		histSlice[i]->Fit("f1","NQR");
+//		f1->GetParameters(&para[0]);
+//		f1->SetRange(para[1]-nSigma*para[2], para[1]+nSigma*para[2]);
+//		histSlice[i]->Fit("f1","NQR");
+//		f1->GetParameters(&para[0]);
+//		err=f1->GetParError(2);
+//		meanT[i]=para[1];
+//		sigmaT[i]=para[2]*1000.0;
+//		sigmaSigmaT[i]=err*1000.0;
+//		meanBinSlice[i]=0.5*(binSliceLow[i]+binSliceUp[i]);
+//		outProfile<<i<<"	"<<binSliceLow[i]<<"	"<<binSliceUp[i]<<"	"<<nEventsSlice[i]<<"	"<<para[1]<<"	"<<para[2]*1000.0<<"	"<<err*1000.0<<"\n";
+//	}
+//	outProfile.close();
+//	TCanvas *cStatus3 = new TCanvas("status3","status3",10,10,800,600);
+//	sigmaSlice = new TGraph(nBinsPeakTot,meanBinSlice,sigmaT);
+//	sigmaSlice->SetTitle("sigmaT vs tot");
+//	sigmaSlice->Draw("A*");
+//	cStatus3->Update();
 
 	for(i=0;i<nEvents;i++)	{
 		if(tot[i]>minPeakTot[0] && tot[i]<maxPeakTot[0])	{	
@@ -438,15 +472,21 @@ void PlotStatus()
 	tVsTot->GetYaxis()->SetTitle("t [ns]");
 	tVsTot->GetYaxis()->CenterTitle();
 
-	TProfile *tTotProfile = tVsTot->ProfileX();
-	tTotProfile->Draw("QRsame");
-	tTotProfile->SetMarkerStyle(21);
-	tTotProfile->SetMarkerSize(0.6);
+//	TProfile *tTotProfile = tVsTot->ProfileX();
+//	tTotProfile->Draw("QRsame");
+//	tTotProfile->SetMarkerStyle(21);
+//	tTotProfile->SetMarkerSize(0.6);
 	cStatus4->Update();
 
 	sprintf(buf2,"%s%s_RunStatus.root",directory,fileName);
 	TFile *hf = new TFile(buf2,"recreate");
-	histlist.Write();
+//	histlist.Write();
+	cStatus1->Write();
+	cStatus2->Write();
+//	cStatus3->Write();
+	cStatus4->Write();
+
+	hf->Close();
 	cout<<"####	Complete ploting spectrums !	####"<<"\n"<<"\n";
 }
 
@@ -457,7 +497,7 @@ void TQCorrection()
 	cout<<"####	Start T-Q correction!	####"<<"\n";
 	int i;
 	int nPeakCounts=0;
-	float t2[nMax],tot2[nMax];
+	double t2[nMax],tot2[nMax];
 	char psName[1024];
 	sprintf(psName,"%s",fileName);
 	
@@ -466,7 +506,7 @@ void TQCorrection()
 //		cout<<tot[i]<<"\n";
 		if(tot[i]>minPeakTot[0] && tot[i]<maxPeakTot[0])
 			{
-				t2[nPeakCounts]=t[i]+shift_t;
+				t2[nPeakCounts]=t[i]-shift_t;
 				tot2[nPeakCounts]=tot[i];
 				nPeakCounts++;
 			}
@@ -542,7 +582,7 @@ void tdc_sptr()
 				ReadRootFile(f1,"h1");
 			//	PlotStatus();
 				TQCorrection();
-			//	f1->Close();
+				f1->Close();
 			}
 			break;
 		}
@@ -558,7 +598,6 @@ void tdc_sptr()
 				isTest.close();
 				cout<<"File:"<<"\n"<<"########  "<<buf<<"  ########"<<"\n"<<"\n";
 				ReadFile();
-				//ReadFile(buf);
 				PlotStatus();
 				TQCorrection();
 			}
