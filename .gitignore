@@ -3,3 +3,7 @@ create_map.log
 *_c.d
 *.ps
 caliResult.txt
+*_cxx.so
+*_cxx.d
+*_.cxx
+*.txt
