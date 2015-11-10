@@ -18,15 +18,15 @@ void my1Dplot()	{
 //	fileName.push_back("/home/huangshan/Dropbox/measurement/stic3_measurements/201407_scan_single_crystal_temp_18deg/20140704_tthr_scan_02_04/result/cspect_fit_32bins.log");
 //	fileName.push_back("/home/huangshan/Dropbox/measurement/stic3_measurements/201407_scan_single_crystal_temp_18deg/20140704_tthr_scan_02_04/result/cspect_fit_64bins.log");
 //	fileName.push_back("/home/huangshan/Dropbox/measurement/stic3_measurements/201407_scan_single_crystal_temp_18deg/20140704_tthr_scan_02_04/result/cspect_fit_128bins.log");
-	fileName.push_back("/home/huangshan/Dropbox/measurement/stic3_measurements/20140517_thr_scan/scan_result/com_spi_3_t_thr_scan.txt");
+	fileName.push_back("/home/huangshan/gitRepos/ipython_notebook/201510_t_vs_tot_result_0.txt");
 
 	ifstream infile;
 	int nEntr = fileName.size();
 	for(int i=0;i<nEntr;++i)
 	{
-		TGraphErrors *g = new TGraphErrors();
+		TGraphErrors *g;
 
-		//for the list 
+		//for the list
 		char *last_file_name = fileName.back();
 		fileName.pop_back();
 
@@ -37,59 +37,77 @@ void my1Dplot()	{
 		}
 		else {
 			float x,y,xErr,yErr;
-			n=0;
+			int style_count=0;
+			double max_pulse_amp=1.000;
+			n = 0;
+			g = new TGraphErrors();
 			infile.seekg(0,ios::beg);
-			while(!infile.eof())	{
+			while(true)	{
 				infile>>var[0]>>var[1]>>var[2];
 				infile>>var[3]>>var[4]>>var[5];
 				infile>>var[6]>>var[7];
 				infile>>var[8]>>var[9];
-				infile>>var[10]>>var[11];
+				infile>>var[10];
 
-				x=181.418-3.19416*var[1]; // threshold dac value to threshold level
-				y=var[5];
-				xErr=0;
-				yErr=var[6];
+				if(infile.eof()) break;				// end of file, break
+
+				if(var[10] > 5) {
+					x=var[1]*330; // injected charge in pC
+					y=var[2];
+					xErr=0;
+					yErr=var[3];
 				
-				g->SetPoint(n,x,y);
-				g->SetPointError(n,xErr,yErr);
-				n++;
+					g->SetPoint(n,x,y);
+					g->SetPointError(n,xErr,yErr);
+					n++;
+					cout << n << endl;
+				}
+
+				if(var[1] == max_pulse_amp) {
+					g->SetMarkerSize(1.0);
+					g->SetMarkerStyle(20+style_count);
+					g->SetMarkerColor(2+style_count);
+					g->SetLineColor(2+style_count);
+
+					graph_list.push_back(g);
+					g = new TGraphErrors();
+					style_count++;
+					n=0;
+				}
+
 			}
 		}
 		infile.close();
 
-		g->SetMarkerSize(1.0);
-		g->SetMarkerStyle(20+i);
-		g->SetMarkerColor(2+i);
-		g->SetLineColor(2+i);
-
-		graph_list.push_back(g);
 	}
 
 
 	TCanvas *c1 = new TCanvas("c1","c1",0,0,800,600);
 	TMultiGraph *mg = new TMultiGraph();
-	c1->SetGrid();
+//	c1->SetGrid();
 
 	nEntr=graph_list.size();
+	cout << "Number of plots: " << nEntr << endl;
 	for(i=0;i<nEntr;++i)
 	{
 		mg->Add(graph_list.back());
 		graph_list.pop_back();
 	}
+	mg->Print();
 	mg->Draw("ap");
-	mg->SetTitle("TThr_scan");
-	mg->GetXaxis()->SetTitle("TThreshold [fC]");
-	mg->GetYaxis()->SetTitle("CTR FWHM [ps]");
+	mg->SetTitle("ToT vs. C");
+	mg->GetXaxis()->SetTitle("C_{in}[pC]");
+	mg->GetYaxis()->SetTitle("ToT [s]");
 //	mg->GetXaxis()->CenterTitle();
 //	mg->GetYaxis()->CenterTitle();
+	c1->BuildLegend();
 	c1->Update();
 
 	wait();
 	c1->Close();
 }
 
-/************ wait funtion !!  *************************************************************** 
+/************ wait funtion !!  ***************************************************************
 *********************************************************************************************/
 void wait(){
 	TTimer *timer = new TTimer("gSystem->ProcessEvents();", 50, kFALSE);
@@ -100,6 +118,6 @@ void wait(){
 		timer->Reset();
 		input=Getline("Type <return> to continue : ");
 		timer->TurnOff();
-		if(input){			done =kTRUE;		}	
+		if(input){			done =kTRUE;		}
 	}while(!done);
 }
