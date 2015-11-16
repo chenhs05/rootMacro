@@ -10,25 +10,23 @@ gROOT->Reset();
 //#include <unistd.h>
 
 void my1Dplot()	{
-	std::list<char *> fileName;
-	std::list<TGraphErrors *> graph_list;
+	std::list<char *> *fileName = new std::list<char *>;
+	std::list<TGraphErrors *> *graph_list = new std::list<TGraphErrors *>;
 	int n,buf;
 	double var[16];
 
-//	fileName.push_back("/home/huangshan/Dropbox/measurement/stic3_measurements/201407_scan_single_crystal_temp_18deg/20140704_tthr_scan_02_04/result/cspect_fit_32bins.log");
-//	fileName.push_back("/home/huangshan/Dropbox/measurement/stic3_measurements/201407_scan_single_crystal_temp_18deg/20140704_tthr_scan_02_04/result/cspect_fit_64bins.log");
-//	fileName.push_back("/home/huangshan/Dropbox/measurement/stic3_measurements/201407_scan_single_crystal_temp_18deg/20140704_tthr_scan_02_04/result/cspect_fit_128bins.log");
-	fileName.push_back("/home/huangshan/gitRepos/ipython_notebook/201510_t_vs_tot_result_0.txt");
+//	fileName->push_back("/home/huangshan/Dropbox/measurement/stic3_measurements/201407_scan_single_crystal_temp_18deg/20140704_tthr_scan_02_04/result/cspect_fit_32bins.log");
+	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/20151111_t_vs_tot_C33p_no_low_pass_filter_conv.txt");
 
 	ifstream infile;
-	int nEntr = fileName.size();
+	int nEntr = fileName->size();
 	for(int i=0;i<nEntr;++i)
 	{
 		TGraphErrors *g;
 
 		//for the list
-		char *last_file_name = fileName.back();
-		fileName.pop_back();
+		char *last_file_name = fileName->back();
+		fileName->pop_back();
 
 		infile.open(last_file_name,ios::in);
 		if(!infile) {
@@ -38,7 +36,13 @@ void my1Dplot()	{
 		else {
 			float x,y,xErr,yErr;
 			int style_count=0;
-			double max_pulse_amp=1.000;
+			double max_pulse_amp=1.800;
+			float capa_in=33;
+			float last_dac=1;
+			float last_ethr=156;
+
+			TLegend* leg = new TLegend(0.1, 0.6, 0.4, 0.9);
+
 			n = 0;
 			g = new TGraphErrors();
 			infile.seekg(0,ios::beg);
@@ -48,34 +52,51 @@ void my1Dplot()	{
 				infile>>var[6]>>var[7];
 				infile>>var[8]>>var[9];
 				infile>>var[10];
+				infile>>var[11];
 
 				if(infile.eof()) break;				// end of file, break
 
 				if(var[10] > 5) {
-					x=var[1]*330; // injected charge in pC
-					y=var[2];
+					x=var[1]*capa_in; // injected charge in pC
+					y=var[8];
 					xErr=0;
-					yErr=var[3];
+					yErr=var[9];
 				
 					g->SetPoint(n,x,y);
 					g->SetPointError(n,xErr,yErr);
 					n++;
-					cout << n << endl;
+					//cout << var[1] << endl;
 				}
 
-				if(var[1] == max_pulse_amp) {
+				if(var[0] != last_dac) {
 					g->SetMarkerSize(1.0);
 					g->SetMarkerStyle(20+style_count);
 					g->SetMarkerColor(2+style_count);
 					g->SetLineColor(2+style_count);
 
-					graph_list.push_back(g);
+					leg->AddEntry(g,Form("E_thr = %.0f, I_bias = %2.0f",last_ethr,last_dac),"lep");
+
+					graph_list->push_back(g);
 					g = new TGraphErrors();
 					style_count++;
 					n=0;
+					last_dac = var[0];
+					if(var[11] != last_ethr) {
+						style_count = 0;
+						last_ethr = var[11];
+					}
 				}
 
 			}
+			// the last set of data
+			g->SetMarkerSize(1.0);
+			g->SetMarkerStyle(20+style_count);
+			g->SetMarkerColor(2+style_count);
+			g->SetLineColor(2+style_count);
+
+			leg->AddEntry(g,Form("E_thr = %.0f, I_bias = %2.0f",var[11],var[0]),"lep");
+
+			graph_list->push_back(g);
 		}
 		infile.close();
 
@@ -86,25 +107,27 @@ void my1Dplot()	{
 	TMultiGraph *mg = new TMultiGraph();
 //	c1->SetGrid();
 
-	nEntr=graph_list.size();
+	nEntr=graph_list->size();
 	cout << "Number of plots: " << nEntr << endl;
 	for(i=0;i<nEntr;++i)
 	{
-		mg->Add(graph_list.back());
-		graph_list.pop_back();
+		mg->Add(graph_list->back());
+		graph_list->pop_back();
 	}
-	mg->Print();
+//	mg->Print();
 	mg->Draw("ap");
-	mg->SetTitle("ToT vs. C");
+//	mg->SetTitle("ToT vs. C");
 	mg->GetXaxis()->SetTitle("C_{in}[pC]");
 	mg->GetYaxis()->SetTitle("ToT [s]");
 //	mg->GetXaxis()->CenterTitle();
 //	mg->GetYaxis()->CenterTitle();
-	c1->BuildLegend();
+	leg->Draw();
+	//c1->BuildLegend();
 	c1->Update();
 
 	wait();
-	c1->Close();
+	delete c1;
+	//c1->Close();
 }
 
 /************ wait funtion !!  ***************************************************************
