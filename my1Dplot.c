@@ -23,7 +23,8 @@ void my1Dplot()	{
 	//fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/20151110_t_vs_tot_no_low_pass_conv.txt");
 	//fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/20151110_t_vs_tot_no_low_pass_filter_low_ethr_conv.txt");
 	//fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/20151115_t_vs_tot_C33p_w_low_pass_filter_conv_remove_entries.txt");
-	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/20151111_t_vs_tot_C33p_no_low_pass_filter_conv.txt");
+	//fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/20151111_t_vs_tot_C33p_no_low_pass_filter_conv.txt");
+	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/20151119_t_vs_tot_C330p_w_low_pass_filter_conv.txt");
 
 	ifstream infile;
 	int nEntr = fileName->size();
@@ -57,7 +58,7 @@ void my1Dplot()	{
 
 			float x,y,xErr,yErr;
 			int style_count=0;
-			float capa_in=33;
+			float capa_in=330;
 			float last_dac=var[0];
 			float last_ethr=var[11];
 
@@ -160,7 +161,7 @@ void my1Dplot()	{
 
 	mg->Draw("ap");
 //	mg->SetTitle("ToT vs. C");
-	mg->GetXaxis()->SetTitle("C_{in}[pC]");
+	mg->GetXaxis()->SetTitle("Q_{in}[pC]");
 	mg->GetYaxis()->SetTitle("ToT [s]");
 //	mg->GetXaxis()->CenterTitle();
 //	mg->GetYaxis()->CenterTitle();
