@@ -219,8 +219,8 @@ void plot_tot_vs_c()	{
 
 	mg->Draw("ap");
 
-	mg->SetTitle("ToT vs. Qin");
-	mg->GetXaxis()->SetTitle("Q_{in}[pC]");
+	mg->SetTitle("ToT vs. Q_{in}");
+	mg->GetXaxis()->SetTitle("Q_{in} [pC]");
 	mg->GetYaxis()->SetTitle("ToT [us]");
 
 	leg->Draw();
