@@ -20,6 +20,7 @@ void plot_tot_vs_c()	{
 
 //	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/tot_vs_q/20151119_t_vs_tot_C330p_w_low_pass_filter_conv.txt");
 	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/tot_vs_q/20151120_tot_vs_q_C330p_no_low_pass_filter_conv.txt");
+//	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/tot_vs_q/20151111_t_vs_tot_C33p_no_low_pass_filter_conv.txt");
 
 	ifstream infile;
 	int nEntr = fileName->size();
@@ -70,10 +71,11 @@ void plot_tot_vs_c()	{
 				//if(var[0] == 1 ) continue;
 
 				last_ibias=var[0];
-				last_ibias=4;
 				last_ethr=var[11];
 				break;
 			}
+			last_ibias=4;
+			last_ethr=140;
 
 
 
@@ -90,11 +92,11 @@ void plot_tot_vs_c()	{
 
 				if(infile.eof()) break;		// end of file, break
 
-				if(var[11] == 160) continue;	//omit the ethr==160 cases, too low E_threshold
-				if(var[11] == 155) continue;	//omit the ethr==155 cases, too low E_threshold
-				if(var[11] != 140) continue;
+				if(var[0] == 1 ) continue;
+			//	if(var[11] == 160) continue;	//omit the ethr==160 cases, too low E_threshold
+			//	if(var[11] == 155) continue;	//omit the ethr==155 cases, too low E_threshold
+				if(var[11] != 140) continue; 	// select the energy threshold
 				if(var[0] != 4 && var[0] != 7 && var[0] != 10) continue;
-				//if(var[0] == 1 ) continue;
 				if(var[1] > 1.5 ) continue;
 
 				if(var[10] > 5) {
@@ -102,19 +104,46 @@ void plot_tot_vs_c()	{
 					y=var[8] * 1e6;
 					xErr=0;
 					yErr=var[9];
-					//x=var[2] * capa_in;
-					//y=var[4] * 1e6;
 
-				//	x=var[0];
-				//	y=var[2];
-				//	x2=var[0];
-				//	y2=var[1];
-				//	xErr=0;
-				//	yErr=0;
+					if(var[0] != last_ibias) {
+						g->SetMarkerSize(0.75);
+						g->SetMarkerStyle(20+style_count);
+						g->SetMarkerColor(colors[style_count] + style_diff_count);
+						g->SetLineColor(colors[style_count] + style_diff_count);
 
-				//	if(var[0] >= 0.0003 && var[0] <=0.2062) {
-				//		h -> Fill(var[2]);
-				//	}
+						//leg->AddEntry(g,Form("I_bias = %02.0f",last_ibias),"lep");
+						//leg->AddEntry(g,Form("E_thr = %.0f, I_bias = %02.0f",last_ethr,last_ibias),"lep");
+						//if(i == 0) {
+						//	low_pass = "with low pass filter";
+						//}
+						//else {
+						//	low_pass = "without low pass filter";
+						//}
+						//leg->AddEntry(g,Form("%s, I_bias = %2.0f",low_pass, last_ibias),"lep");
+
+						if(last_ibias == 4) {
+							bias_current = "low discharge current";
+						}
+						else if(last_ibias == 7) {
+							bias_current = "medium discharge current";
+						}
+						else if(last_ibias == 10) {
+							bias_current = "high discharge current";
+						}
+						leg->AddEntry(g,Form("%s", bias_current),"lep");
+
+						graph_list->push_back(g);
+						g = new TGraphErrors();
+						style_count++;
+						n=0;
+						last_ibias = var[0];
+
+					}
+					if(var[11] != last_ethr) {
+						style_count = 0;
+						last_ethr = var[11];
+						style_diff_count++;
+					}
 
 					g->SetPoint(n,x,y);
 					g->SetPointError(n,xErr,yErr);
@@ -124,49 +153,6 @@ void plot_tot_vs_c()	{
 					}
 				}
 
-				if(var[0] != last_ibias) {
-					g->SetMarkerSize(0.75);
-					g->SetMarkerStyle(20+style_count);
-					g->SetMarkerColor(colors[style_count] + style_diff_count);
-					g->SetLineColor(colors[style_count] + style_diff_count);
-
-					//leg->AddEntry(g,Form("I_bias = %02.0f",last_ibias),"lep");
-					//leg->AddEntry(g,Form("E_thr = %.0f, I_bias = %02.0f",last_ethr,last_ibias),"lep");
-					//if(i == 0) {
-					//	low_pass = "with low pass filter";
-					//}
-					//else {
-					//	low_pass = "without low pass filter";
-					//}
-					//leg->AddEntry(g,Form("%s, I_bias = %2.0f",low_pass, last_ibias),"lep");
-
-					if(last_ibias == 4) {
-						bias_current = "low discharge current";
-					}
-					else if(last_ibias == 7) {
-						bias_current = "medium discharge current";
-					}
-					else if(last_ibias == 10) {
-						bias_current = "high discharge current";
-					}
-					leg->AddEntry(g,Form("%s", bias_current),"lep");
-
-					graph_list->push_back(g);
-					g = new TGraphErrors();
-					style_count++;
-					n=0;
-					last_ibias = var[0];
-
-					//if( style_count > 11) {
-					//	style_count = 0;
-					//	style_diff_count++;
-					//}
-					if(var[11] != last_ethr) {
-						style_count = 0;
-						last_ethr = var[11];
-						style_diff_count++;
-					}
-				}
 
 			}
 			// the last set of data
@@ -190,9 +176,6 @@ void plot_tot_vs_c()	{
 			//leg->AddEntry(g,Form("I_bias = %2.0f",last_ibias),"lep");
 			//leg->AddEntry(g,Form("E_thr = %.0f, I_bias = %2.0f",last_ethr,last_ibias),"lep");
 			//leg->AddEntry(g,Form("E_thr = %.0f, I_bias = %2.0f",160.0-10.0*i,var[0]),"lep");
-			//
-			//if(i == 0 ) leg->AddEntry(g,"schematics","lep");
-			//if(i == 1 ) leg->AddEntry(g,"C+CC","lep");
 
 			graph_list->push_back(g);
 			style_count ++;
