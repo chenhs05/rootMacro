@@ -18,7 +18,9 @@ void plot_tot_vs_c_sim()	{
 	int n,buf;
 	double var[16];
 
-	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/sim_tot_vs_q/20151127_schematics_tot_vs_q_330pF_no_low_pass_filter_val_ibias_val2_ethr_conv.txt");
+	//fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/sim_tot_vs_q/20151127_schematics_tot_vs_q_330pF_no_low_pass_filter_val_ibias_val2_ethr_conv.txt");
+	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/sim_tot_vs_q/20151128_schematics_tot_vs_q_33pF_no_low_pass_val_ibias_val2_ethr_conv.txt");
+	//fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/sim_tot_vs_q/20151131_schematics_tot_vs_q_33pF_with_low_pass_val_ibias_val2_ethr_conv.txt");
 
 	ifstream infile;
 	int nEntr = fileName->size();
@@ -52,7 +54,7 @@ void plot_tot_vs_c_sim()	{
 			float x2,y2;
 			int style_count=0;
 			int style_diff_count = 0;
-			float capa_in=330;
+			float capa_in=33;
 			float last_ibias,last_ethr;
 
 			// read in the first line to get the initial value of last_ibias and last_ethr
@@ -63,15 +65,15 @@ void plot_tot_vs_c_sim()	{
 				infile>>var[4]>>var[5]>>var[6];
 
 				if(infile.eof()) break;				// end of file, break
+				if(var[0] == 1 ) continue;
 
 				//if(var[0] == 1 ) continue;
 
 				last_ibias=var[0];
-				last_ibias=5;
 				last_ethr=var[1];
 				break;
 			}
-
+			last_ibias=5;
 
 
 			n = 0;
@@ -85,9 +87,9 @@ void plot_tot_vs_c_sim()	{
 
 				if(infile.eof()) break;		// end of file, break
 
+				if(var[0] == 1 ) continue;
 				if(var[1] != 120) continue;
 				if(var[0] != 5 && var[0] != 9 && var[0] != 13) continue;
-				//if(var[0] == 1 ) continue;
 				if(var[2] > 1.5 ) continue;
 
 				if(1) {
@@ -95,6 +97,36 @@ void plot_tot_vs_c_sim()	{
 					y=var[4] * 1e6;
 					xErr=0;
 					yErr=0;
+
+					if(var[0] != last_ibias) {
+						g->SetMarkerSize(0.75);
+						g->SetMarkerStyle(20+style_count);
+						g->SetMarkerColor(colors[style_count] + style_diff_count);
+						g->SetLineColor(colors[style_count] + style_diff_count);
+
+					//	leg->AddEntry(g,Form("E_thr = %.0f, I_bias = %02.0f",last_ethr,last_ibias),"lep");
+						if(last_ibias == 5) {
+							bias_current = "low discharge current";
+						}
+						else if(last_ibias == 9) {
+							bias_current = "medium discharge current";
+						}
+						else if(last_ibias == 13) {
+							bias_current = "high discharge current";
+						}
+						leg->AddEntry(g,Form("%s", bias_current),"p");
+
+						graph_list->push_back(g);
+						g = new TGraphErrors();
+						style_count++;
+						n=0;
+						last_ibias = var[0];
+					}
+					if(var[1] != last_ethr) {
+						style_count = 0;
+						last_ethr = var[1];
+						style_diff_count++;
+					}
 
 					g->SetPoint(n,x,y);
 					g->SetPointError(n,xErr,yErr);
@@ -104,35 +136,7 @@ void plot_tot_vs_c_sim()	{
 					}
 				}
 
-				if(var[0] != last_ibias) {
-					g->SetMarkerSize(0.75);
-					g->SetMarkerStyle(20+style_count);
-					g->SetMarkerColor(colors[style_count] + style_diff_count);
-					g->SetLineColor(colors[style_count] + style_diff_count);
 
-					if(last_ibias == 5) {
-						bias_current = "low discharge current";
-					}
-					else if(last_ibias == 9) {
-						bias_current = "medium discharge current";
-					}
-					else if(last_ibias == 13) {
-						bias_current = "high discharge current";
-					}
-					leg->AddEntry(g,Form("%s", bias_current),"p");
-
-					graph_list->push_back(g);
-					g = new TGraphErrors();
-					style_count++;
-					n=0;
-					last_ibias = var[0];
-
-					if(var[1] != last_ethr) {
-						style_count = 0;
-						last_ethr = var[1];
-						style_diff_count++;
-					}
-				}
 
 			}
 			// the last set of data
@@ -141,6 +145,7 @@ void plot_tot_vs_c_sim()	{
 			g->SetMarkerColor(colors[style_count] + style_diff_count);
 			g->SetLineColor(colors[style_count] + style_diff_count);
 
+		//	leg->AddEntry(g,Form("E_thr = %.0f, I_bias = %02.0f",last_ethr,last_ibias),"lep");
 			if(last_ibias == 5) {
 				bias_current = "low discharge current";
 			}
