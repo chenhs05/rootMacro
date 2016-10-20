@@ -1,3 +1,6 @@
+// To read TOT vs charge data from simulation for different input bias and energy threshold
+// and plot the curve
+//
 gROOT->Reset();
 #include <fstream>
 #include <iostream>
@@ -19,7 +22,8 @@ void plot_tot_vs_c_sim()	{
 	double var[16];
 
 	//fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/sim_tot_vs_q/20151127_schematics_tot_vs_q_330pF_no_low_pass_filter_val_ibias_val2_ethr_conv.txt");
-	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/sim_tot_vs_q/20151128_schematics_tot_vs_q_33pF_no_low_pass_val_ibias_val2_ethr_conv.txt");
+	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/sim_tot_vs_q/20151126_schematics_tot_vs_q_330pF_with_low_pass_val_ibias_val2_ethr_conv.txt");
+	//fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/sim_tot_vs_q/20151128_schematics_tot_vs_q_33pF_no_low_pass_val_ibias_val2_ethr_conv.txt");
 	//fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/sim_tot_vs_q/20151131_schematics_tot_vs_q_33pF_with_low_pass_val_ibias_val2_ethr_conv.txt");
 
 	ifstream infile;
@@ -50,11 +54,17 @@ void plot_tot_vs_c_sim()	{
 			return;
 		}
 		else {
+			//*********** check this before run the script ********
+			float capa_in=330;
+			int low_ibias = 5;
+			int mid_ibias = 9;
+			int hi_ibias = 13;
+			int e_thr = 135;
+
 			float x,y,xErr,yErr;
 			float x2,y2;
 			int style_count=0;
 			int style_diff_count = 0;
-			float capa_in=33;
 			float last_ibias,last_ethr;
 
 			// read in the first line to get the initial value of last_ibias and last_ethr
@@ -73,7 +83,7 @@ void plot_tot_vs_c_sim()	{
 				last_ethr=var[1];
 				break;
 			}
-			last_ibias=5;
+			last_ibias=low_ibias;
 
 
 			n = 0;
@@ -88,8 +98,8 @@ void plot_tot_vs_c_sim()	{
 				if(infile.eof()) break;		// end of file, break
 
 				if(var[0] == 1 ) continue;
-				if(var[1] != 120) continue;
-				if(var[0] != 5 && var[0] != 9 && var[0] != 13) continue;
+				if(var[1] != e_thr) continue;
+				if(var[0] != low_ibias && var[0] != mid_ibias && var[0] != hi_ibias) continue;
 				if(var[2] > 1.5 ) continue;
 
 				if(1) {
@@ -105,13 +115,13 @@ void plot_tot_vs_c_sim()	{
 						g->SetLineColor(colors[style_count] + style_diff_count);
 
 					//	leg->AddEntry(g,Form("E_thr = %.0f, I_bias = %02.0f",last_ethr,last_ibias),"lep");
-						if(last_ibias == 5) {
+						if(last_ibias == low_ibias) {
 							bias_current = "low discharge current";
 						}
-						else if(last_ibias == 9) {
+						else if(last_ibias == mid_ibias) {
 							bias_current = "medium discharge current";
 						}
-						else if(last_ibias == 13) {
+						else if(last_ibias == hi_ibias) {
 							bias_current = "high discharge current";
 						}
 						leg->AddEntry(g,Form("%s", bias_current),"p");
@@ -146,13 +156,13 @@ void plot_tot_vs_c_sim()	{
 			g->SetLineColor(colors[style_count] + style_diff_count);
 
 		//	leg->AddEntry(g,Form("E_thr = %.0f, I_bias = %02.0f",last_ethr,last_ibias),"lep");
-			if(last_ibias == 5) {
+			if(last_ibias == low_ibias) {
 				bias_current = "low discharge current";
 			}
-			else if(last_ibias == 9) {
+			else if(last_ibias == mid_ibias) {
 				bias_current = "medium discharge current";
 			}
-			else if(last_ibias == 13) {
+			else if(last_ibias == hi_ibias) {
 				bias_current = "high discharge current";
 			}
 			leg->AddEntry(g,Form("%s", bias_current),"p");

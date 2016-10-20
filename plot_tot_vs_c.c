@@ -1,3 +1,6 @@
+// To read TOT (from scope measurement) vs charge data for different input bias and energy threshold
+// and plot the curve
+//
 gROOT->Reset();
 #include <fstream>
 #include <iostream>
@@ -19,8 +22,9 @@ void plot_tot_vs_c()	{
 	double var[16];
 
 //	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/tot_vs_q/20151119_t_vs_tot_C330p_w_low_pass_filter_conv.txt");
-	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/tot_vs_q/20151120_tot_vs_q_C330p_no_low_pass_filter_conv.txt");
+//	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/tot_vs_q/20151120_tot_vs_q_C330p_no_low_pass_filter_conv.txt");
 //	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/tot_vs_q/20151111_t_vs_tot_C33p_no_low_pass_filter_conv.txt");
+	fileName->push_back("/home/huangshan/gitRepos/ipython_notebook/result/tot_vs_q/20151116_tot_vs_c_c33p_w_low_pass_filter_conv.txt");
 
 	ifstream infile;
 	int nEntr = fileName->size();
@@ -50,11 +54,13 @@ void plot_tot_vs_c()	{
 			return;
 		}
 		else {
+			//*********** check this before run the script ********
+			float capa_in=33;
+
 			float x,y,xErr,yErr;
 			float x2,y2;
 			int style_count=0;
 			int style_diff_count = 0;
-			float capa_in=330;
 			float last_ibias,last_ethr;
 
 			// read in the first line to get the initial value of last_ibias and last_ethr
@@ -95,7 +101,7 @@ void plot_tot_vs_c()	{
 				if(var[0] == 1 ) continue;
 			//	if(var[11] == 160) continue;	//omit the ethr==160 cases, too low E_threshold
 			//	if(var[11] == 155) continue;	//omit the ethr==155 cases, too low E_threshold
-				if(var[11] != 140) continue; 	// select the energy threshold
+				if(var[11] != 156) continue; 	// select the energy threshold
 				if(var[0] != 4 && var[0] != 7 && var[0] != 10) continue;
 				if(var[1] > 1.5 ) continue;
 
